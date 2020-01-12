@@ -6,3 +6,9 @@ To play, try /path/to/python.exe pipe_game.py
 A pipe game inspired by a childhood favorite, https://en.wikipedia.org/wiki/Pipe_Mania
 I am building this using as few libraries as I can get away with.
 Mostly uses python standard library.
+
+Controls:
+space - rotate pipe
+esc - quit
+r - restart
+x - advance time by one tick
