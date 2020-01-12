@@ -1,13 +1,12 @@
-# import numpy as np
-# from pprint import pprint
 import random
-# import pandas as pd
-# from itertools import cycle
+import time
+import json
 
-
-# seed=1000
 strfrmt="piece_orientation_flowdirs_color"
-example="pipe_up_ud_yellow"
+example="pipe_up_ud_y"
+with open('pieces.json', 'r') as f:
+    pieces = json.load(f)
+
 
 class pcolors:
     HEADER = '\033/[95m'
@@ -19,56 +18,8 @@ class pcolors:
     BOLD = '\033/[1m'
     UNDERLINE = '\033/[4m'
 
-pieces = {"pipe": {"up": {"array": [['|', ' ', '|'],
-                                    ['|', ' ', '|'],
-                                    ['|', ' ', '|']],
-                          "dirs": "ud"},
-                   "rt": {"array": [['-', '-', '-'],
-                                    [' ', ' ', ' '],
-                                    ['-', '-', '-']],
-                          "dirs": "lr"},
-                   "dn": {"array": [['|', ' ', '|'],
-                                    ['|', ' ', '|'],
-                                    ['|', ' ', '|']],
-                          "dirs": "ud"},
-                   "lf": {"array": [['-', '-', '-'],
-                                    [' ', ' ', ' '],
-                                    ['-', '-', '-']],
-                          "dirs": "lr"}},
-          "turn": {"up": {"array": [['|', ' ', '\u2514'],
-                                    ['|', ' ', ' '],
-                                    ['\u2514', '-', '-']],
-                          "dirs": "ur"},
-                   "rt": {"array": [['\u250c', '-', '-'],
-                                    ['|', ' ', ' '],
-                                    ['|', ' ', '\u250c']],
-                          "dirs": "rd"},
-                   "dn": {"array": [['-', '-', '\u2510'],
-                                    [' ', ' ', '|'],
-                                    ['\u2510', ' ', '|']],
-                          "dirs": "dl"},
-                   "lf": {"array": [['\u2518', ' ', '|'],
-                                    [' ', ' ', '|'],
-                                    ['-', '-', '\u2518']],
-                          "dirs": "lu"}},
-          "junc": {"up": {"array": [['\u2518', ' ', '\u2514'],
-                                    [' ', ' ', ' '],
-                                    ['-', '-', '-']],
-                          "dirs": "lur"},
-                   "rt": {"array": [['|', ' ', '\u2514'],
-                                    ['|', ' ', ' '],
-                                    ['|', ' ', '\u250c']],
-                          "dirs": "urd"},
-                   "dn": {"array": [['-', '-', '-'],
-                                    [' ', ' ', ' '],
-                                    ['\u2510', ' ', '\u250c']],
-                          "dirs": "rdl"},
-                   "lf": {"array": [['\u2518', ' ', '|'],
-                                    [' ', ' ', '|'],
-                                    ['\u2510', ' ', '|']],
-                          "dirs": "dlu"}}}
-import time
-class gameboard:
+
+class GameBoard:
 
     def __init__(self, board_width=9, board_height=7, seed=random.getrandbits(32)):
         self.board_width = board_width
@@ -87,29 +38,23 @@ class gameboard:
         self.representation[coords[0]][coords[1]] = self.color_piece(piece, color_rep)
 
     def _generate_representation(self):
-        if self.representation is None:
-            self.representation = [[pieces[item.split('_')[0]][item.split('_')[1]]["array"] for item in row] for row in self.board]
-            for i in range(self.board_width):
-                for j in range(self.board_height):
-                    color = self.board[j][i].split('_')[3]
-                    self._recolor([j, i], color)
-        else:
-            self.representation = [[pieces[item.split('_')[0]][item.split('_')[1]]["array"] for item in row] for row in self.board]
-            for i in range(self.board_width):
-                for j in range(self.board_height):
-                    color = self.board[j][i].split('_')[3]
-                    self._recolor([j, i], color)
+        self.representation = [[pieces[item.split('_')[0]][item.split('_')[1]]["array"]
+                                for item in row]
+                               for row in self.board]
+        for i in range(self.board_width):
+            for j in range(self.board_height):
+                color = self.board[j][i].split('_')[3]
+                self._recolor([j, i], color)
         self._recolor(self.selected, "b")
 
     def display(self):
         for row in self.representation:
-            width = len(row)
             print("\u001b[38;5;234m+\x1b[0m", end='')
-            [print("\u001b[38;5;234m=======+\x1b[0m", end='') for _ in range(width)]
+            [print("\u001b[38;5;234m=======+\x1b[0m", end='') for _ in range(self.board_width)]
             print()
             for i in range(3):
                 top = ['\u001b/[38;5;234m|\x1b/[0m']
-                for line in range(width):
+                for line in range(self.board_width):
                     top.append(row[line][i])
                     top.append('\u001b/[38;5;234m|\x1b/[0m')
                     # if line%3==0:
@@ -119,14 +64,12 @@ class gameboard:
                 # out= ' | '.join(a + b for a, b in zip(out[::3], out[1::3]))
                 print(out)
         print("\u001b[38;5;234m+\x1b[0m", end='')
-        [print("\u001b[38;5;234m=======+\x1b[0m", end='') for _ in range(width)]
+        [print("\u001b[38;5;234m=======+\x1b[0m", end='') for _ in range(self.board_width)]
         print()
         hashes = int((time.time() - self.clock)%60)
         bar = "[" + "#" * hashes + " " * (30 - hashes) + "]"
         print("\x1b[32mGAME OF PIPE ", end='')
         print(bar, end='\x1b[0m\n')
-
-
 
     def rotate(self):
         piece = self.board[self.selected[0]][self.selected[1]]
@@ -180,6 +123,7 @@ class gameboard:
         # newstr=newstr.replace('/','')
         # newstr2=newstr.encode('ascii', 'backslashreplace').decode('unicode_escape')
         return newstr.replace('/','').encode('ascii', 'backslashreplace').decode('unicode_escape')
+
     @staticmethod
     def print_meta_board(cur_board):
         print("+", end='')
@@ -196,11 +140,10 @@ class gameboard:
                 print("----------------+", end='')
             print()
 
-# def piece_from_name(name):
-#     parsed = name.split('_')
-#     return pieces[parsed[0]][parsed[1]]
-#
-#
-# print(piece_from_name(example))
+    @staticmethod
+    def _piece_from_name(name):
+        parsed = name.split('_')
+        return pieces[parsed[0]][parsed[1]]
+
 
 

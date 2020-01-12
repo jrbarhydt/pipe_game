@@ -1,13 +1,13 @@
-from board import gameboard
+from board import GameBoard
 import os
 import keyboard
 
 if __name__ == '__main__':
     def init():
-        bd = gameboard()
+        board = GameBoard()
         os.system('cls' if os.name == 'nt' else 'clear')
-        bd.display()
-        return bd
+        board.display()
+        return board
 
     def rot():
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -23,7 +23,7 @@ if __name__ == '__main__':
         print("EXITING...")
         exit()
 
-    bd=init()
+    bd = init()
     keyboard.add_hotkey('space', rot)
     keyboard.add_hotkey('right', select, args='r')
     keyboard.add_hotkey('left', select, args='l')
