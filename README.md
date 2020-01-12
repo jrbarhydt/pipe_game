@@ -8,7 +8,7 @@ I am building this using as few libraries as I can get away with.
 Mostly uses python standard library.
 
 Controls:
-space - rotate pipe
-esc - quit
-r - restart
-x - advance time by one tick
+  - space - rotate pipe
+  - esc - quit
+  - r - restart
+  - x - advance time by one tick
