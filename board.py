@@ -1,10 +1,11 @@
 import random
 import time
 import json
-
+import os
 strfrmt="piece_orientation_flowdirs_color"
 example="pipe_up_ud_y"
-with open('pieces.json', 'r') as f:
+
+with open(os.path.dirname(os.path.realpath(__file__))+'./pieces.json', 'r') as f:
     pieces = json.load(f)
 
 
