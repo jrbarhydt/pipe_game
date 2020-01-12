@@ -22,14 +22,98 @@ class pcolors:
 
 class GameBoard:
 
-    def __init__(self, board_width=9, board_height=7, seed=random.getrandbits(32)):
+    def __init__(self, board_width=9, board_height=7, seed=None):
+        if seed is None:
+            self.seed = random.getrandbits(32)
+        else:
+            self.seed = seed
+        random.seed(self.seed)
+
         self.board_width = board_width
         self.board_height = board_height
-        self.board = self.generate_board(board_width=self.board_width, board_height=self.board_height, seed=seed)
+        self.board = self.generate_board(board_width=self.board_width, board_height=self.board_height, seed=self.seed)
+        self.entry = [0, 0]
+        self.exit = [self.board_height, self.board_width]
         self.selected = [0, 0]
+        self.flows = [self.entry]
         self.representation = None
         self._generate_representation()
         self.clock=time.time()
+
+    def start_flow(self):
+        self._fill_piece(self.entry)
+        self._generate_representation()
+    def increment_flow(self):
+        current_flows = self.flows
+        if len(self.flows) == 0:
+            print("YOU LOSE")
+            input()
+            exit()
+        found = self._look(current_flows)
+        if found:
+            self.flows = []
+            [self.flows.append(piece) for piece in found if piece not in self.flows]
+            [self._fill_piece(to_fill) for to_fill in self.flows]
+        else:
+            print("YOU LOSE")
+            input()
+            exit()
+        self._generate_representation()
+
+    def _look(self, flow_list):
+        results = []
+        for coords in flow_list:
+            piece_name = self.board[coords[0]][coords[1]].split('_')
+            flow_dirs = piece_name[2]
+
+            for dir in flow_dirs:
+                found = self._look_in_dir(coords, dir)
+                if found:
+                    results.append(found)
+
+        if results:
+            return results
+        else:
+            return None
+
+    def _look_in_dir(self, coords, dir):
+        if dir == 'u':
+            if coords[0]-1 < 0:
+                return None
+            word = self.board[coords[0]-1][coords[1]].split('_')
+            if 'd' in word[2] and 'g' != word[-1]:
+                return [coords[0]-1, coords[1]]
+            else:
+                return None
+        if dir == 'd':
+            if coords[0]+1 >= self.board_height:
+                return None
+            word = self.board[coords[0]+1][coords[1]].split('_')
+            if 'u' in word[2] and 'g' != word[-1]:
+                return [coords[0]+1, coords[1]]
+            else:
+                return None
+        if dir == 'l':
+            if coords[1]-1 < 0:
+                return None
+            word = self.board[coords[0]][coords[1]-1].split('_')
+            if 'r' in word[2] and 'g' != word[-1]:
+                return [coords[0], coords[1]-1]
+            else:
+                return None
+        if dir == 'r':
+            if coords[1]+1 >= self.board_width:
+                return None
+            word = self.board[coords[0]][coords[1] + 1].split('_')
+            if 'l' in word[2] and 'g' != word[-1]:
+                return [coords[0], coords[1]+1]
+            else:
+                return None
+
+        return None
+
+    def _fill_piece(self, coords):
+        self.board[coords[0]][coords[1]] = self.board[coords[0]][coords[1]][0:-1] + 'g'
 
     def _recolor(self, coords, color):
         # piece = self.representation[coords[0]][coords[1]]
@@ -49,11 +133,25 @@ class GameBoard:
         self._recolor(self.selected, "b")
 
     def display(self):
-        for row in self.representation:
-            print("\u001b[38;5;234m+\x1b[0m", end='')
+        for idx, row in enumerate(self.representation):
+
+            if idx == self.entry[0]:
+                st = True
+            else:
+                st = False
+            if idx == self.exit[0]-1:
+                en = True
+            else:
+                en = False
+
+            print("   \u001b[38;5;234m+\x1b[0m", end='')
             [print("\u001b[38;5;234m=======+\x1b[0m", end='') for _ in range(self.board_width)]
             print()
             for i in range(3):
+                if st:
+                    print("\x1b[32m>>>", end='')
+                else:
+                    print('   ', end='')
                 top = ['\u001b/[38;5;234m|\x1b/[0m']
                 for line in range(self.board_width):
                     top.append(row[line][i])
@@ -61,21 +159,25 @@ class GameBoard:
                     # if line%3==0:
                     #     top.append(' . ')
                 # top = [row[line][i] for line in range(width)]
+                if en:
+                    top.append('\x1b/[32m>>>')
                 out = self.replacer(str(top))
                 # out= ' | '.join(a + b for a, b in zip(out[::3], out[1::3]))
                 print(out)
-        print("\u001b[38;5;234m+\x1b[0m", end='')
+        print("   \u001b[38;5;234m+\x1b[0m", end='')
         [print("\u001b[38;5;234m=======+\x1b[0m", end='') for _ in range(self.board_width)]
         print()
         hashes = int((time.time() - self.clock)%60)
         bar = "[" + "#" * hashes + " " * (30 - hashes) + "]"
         print("\x1b[32mGAME OF PIPE ", end='')
         print(bar, end='\x1b[0m\n')
+        print(self.flows)
 
     def rotate(self):
         piece = self.board[self.selected[0]][self.selected[1]]
-        self.board[self.selected[0]][self.selected[1]] = self._rotate_piece(piece)
-        self._generate_representation()
+        if piece.split('_')[-1] != 'g':
+            self.board[self.selected[0]][self.selected[1]] = self._rotate_piece(piece)
+            self._generate_representation()
 
     def select(self, direction):
         if direction == 'u' and self.selected[0] > 0:
@@ -100,7 +202,7 @@ class GameBoard:
         return '_'.join(word)
 
     @staticmethod
-    def generate_board(board_width, board_height, seed=random.getrandbits(32)):
+    def generate_board(board_width=4, board_height=4, seed=random.getrandbits(32)):
         random.seed(seed)
         gen_pieces = [["{}_{}".format(list(pieces)[random.randint(0, 2)],
                                       list(pieces[list(pieces)[0]])[random.randint(0, 3)])
